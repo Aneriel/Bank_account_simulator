@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using sql;
 string link = @"accounts.txt";
 if (File.Exists(link)) {
     Console.WriteLine("Plik istnieje");
@@ -15,7 +16,6 @@ if (File.Exists(link)) {
 
 restart:
 Console.WriteLine("Witaj drogi kliencie, czy posiadasz już konto w naszym banku?");
-begining:
 Console.WriteLine("Wybierz opcje wpisując liczbę 1, 2 lub 0");
 Console.WriteLine("1. Zaloguj się na swoje konto");
 Console.WriteLine("2. Utwórz konto");
@@ -81,7 +81,7 @@ rebirthdate:
         Console.WriteLine("Naciśnij enter by kontynuować");
         Console.ReadLine();
         Console.Clear();
-        Console.Write("(Data urodzenia powinna być w formacie DD-MM-RRRR)");
+        Console.WriteLine("(Data urodzenia powinna być w formacie DD-MM-RRRR)");
         Console.Write("Proszę ponownie podać Datę urodzenia:");
         goto rebirthdate;
     }
@@ -124,15 +124,16 @@ else if (ifAcc == "0")
 else
 {
     Console.WriteLine("Niepoprawna odpowiedź");
+    Console.WriteLine("By kontynuować naciśnij enter");
     Console.Clear();
-    goto begining;
+    goto restart;
 }
 
 
 
 
 
-/*zapisz kod
+/*ZAPISZ TEN KOD
  * try
 {
     using (FileStream fs = File.Create(link))
