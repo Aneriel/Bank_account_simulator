@@ -1,17 +1,10 @@
 ﻿using MySql.Data.MySqlClient;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Runtime;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pl
 {
     internal class operations
     {
-        public static void dbconntest() 
+        public static void dbconntest()
         {
             string connStr = "server=localhost;user=root;database=Bank;port=3306;password=";
 
@@ -32,6 +25,6 @@ namespace Pl
             Console.Read();
         }
 
-    
+
     }
 }

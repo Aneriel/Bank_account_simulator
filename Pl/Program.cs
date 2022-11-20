@@ -1,14 +1,6 @@
-﻿using System;
-using System.Data.SqlTypes;
-using System.IO;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using MySql.Data.MySqlClient;
-using System.Data.SqlClient;
+﻿using MySql.Data.MySqlClient;
 using Pl;
 using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Data;
 
 operations.dbconntest();
 
@@ -34,14 +26,14 @@ if (ifAcc == "1")
     {
         conn.Open();
         string sql = $"select Account_number,password from clients_login where Account_number = {login}";
-        MySqlCommand cmd = new MySqlCommand(sql,conn);
+        MySqlCommand cmd = new MySqlCommand(sql, conn);
         cmd.ExecuteNonQuery();
         using (MySqlDataReader reader = cmd.ExecuteReader())
         {
             while (reader.Read())
             {
-                 checkLogin = reader["Account_number"].ToString();
-                 checkPasswd = reader["Password"].ToString();
+                checkLogin = reader["Account_number"].ToString();
+                checkPasswd = reader["Password"].ToString();
             }
 
         }
@@ -79,7 +71,7 @@ haslo:
         Console.WriteLine();
         Console.WriteLine("Hasło się zgadza");
         Console.ReadLine();
-    } 
+    }
     else
     {
         Console.WriteLine();
@@ -234,7 +226,7 @@ notSure:
             }
             else
             {
-                Console.WriteLine(  );
+                Console.WriteLine();
                 Console.WriteLine("Dodawanie nowego konta do bazy danych, proszę czekać...");
                 try
                 {
@@ -249,9 +241,10 @@ notSure:
                     cmd3.ExecuteNonQuery();
                     Console.WriteLine("Pomyślnie dodano nowe konto, można się zalogować");
                 }
-                 catch (Exception ex) {
+                catch (Exception ex)
+                {
                     Console.WriteLine("Couldn't add new account to the database, check the connection");
-                    Console.WriteLine(ex.ToString()); 
+                    Console.WriteLine(ex.ToString());
                 }
             }
 
@@ -286,7 +279,7 @@ notSure:
 
     }
     Console.WriteLine("By kontynuować naciśnij ENTER:");
-    Console.ReadLine() ;
+    Console.ReadLine();
     Console.Clear();
     goto restart;
 }
@@ -305,7 +298,7 @@ else
     Console.Clear();
     goto restart;
 }
-if(loggedIn == 0)
+if (loggedIn == 0)
 {
     Console.WriteLine("Nie jesteś zalogowany/a");
     Console.WriteLine("By wrócić do menu głównego naciśnij ENTER");
