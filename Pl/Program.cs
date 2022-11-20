@@ -1,20 +1,19 @@
 ﻿using System;
+using System.Data.SqlTypes;
 using System.IO;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
-using sql;
-string link = @"accounts.txt";
-if (File.Exists(link)) {
-    Console.WriteLine("Plik istnieje");
-} else
-{
-    
-    using (FileStream fs = File.Create(link))
-    {
+using MySql.Data.MySqlClient;
+using System.Data.SqlClient;
+using Pl;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Data;
 
-    }
-}
+operations.dbconntest();
 
 restart:
+int loggedIn = 0;
 Console.WriteLine("Witaj drogi kliencie, czy posiadasz już konto w naszym banku?");
 Console.WriteLine("Wybierz opcje wpisując liczbę 1, 2 lub 0");
 Console.WriteLine("1. Zaloguj się na swoje konto");
@@ -23,24 +22,72 @@ Console.WriteLine("0. Zamknij aplikację bankową");
 string ifAcc = Console.ReadLine();
 if (ifAcc == "1")
 {
+    string checkLogin = "0";
+    string checkPasswd = "0";
+    string connStr = "server=localhost;user=root;database=Bank;port=3306;password=";
+    MySqlConnection conn = new MySqlConnection(connStr);
     Console.Clear();
     Console.WriteLine("Witamy w systemie logowania naszego banku");
     Console.WriteLine("Podaj Numer konta:");
     string login = Console.ReadLine();
+    try
+    {
+        conn.Open();
+        string sql = $"select Account_number,password from clients_login where Account_number = {login}";
+        MySqlCommand cmd = new MySqlCommand(sql,conn);
+        cmd.ExecuteNonQuery();
+        using (MySqlDataReader reader = cmd.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                 checkLogin = reader["Account_number"].ToString();
+                 checkPasswd = reader["Password"].ToString();
+            }
+
+        }
+
+    }
+    catch (Exception err)
+    {
+        Console.WriteLine("Couldn't add new account to the database, check the connection");
+        Console.WriteLine(err.ToString());
+    }
+    conn.Close();
     Console.WriteLine($"Podaj hasło");
 haslo:
-    string psswd = Console.ReadLine();
-    if (psswd == "17772")
+    var psswd = string.Empty;
+    ConsoleKey key;
+    do
     {
+        var keyInfo = Console.ReadKey(intercept: true);
+        key = keyInfo.Key;
+
+        if (key == ConsoleKey.Backspace && psswd.Length > 0)
+        {
+            Console.Write("\b \b");
+            psswd = psswd[0..^1];
+        }
+        else if (!char.IsControl(keyInfo.KeyChar))
+        {
+            Console.Write("*");
+            psswd += keyInfo.KeyChar;
+        }
+    } while (key != ConsoleKey.Enter);
+
+    if (psswd == checkPasswd)
+    {
+        Console.WriteLine();
         Console.WriteLine("Hasło się zgadza");
-    }
+        Console.ReadLine();
+    } 
     else
     {
+        Console.WriteLine();
         Console.WriteLine("hasło niepoprawne, spróbuj ponownie");
         goto haslo;
 
     }
-    bool loggedIn = true;
+    loggedIn = 1;
 }
 else if (ifAcc == "2")
 {
@@ -71,24 +118,51 @@ resurname:
         Console.Write("Proszę ponownie podać nazwisko:");
         goto resurname;
     }
-    Console.WriteLine("(Data urodzenia powinna być w formacie DD-MM-RRRR)");
+    Console.WriteLine("(Data urodzenia powinna być w formacie DD/MM/YYYY)");
     Console.Write("Data Urodzenia:");
 rebirthdate:
-    string newAccBirthdate = Console.ReadLine();
-    if (string.IsNullOrEmpty(newAccBirthdate))
+    string birthday = Console.ReadLine();
+    if (string.IsNullOrEmpty(birthday))
     {
         Console.WriteLine("Zakładka Data urodzenia nie może być pusta, spróbuj ponownie");
         Console.WriteLine("Naciśnij enter by kontynuować");
         Console.ReadLine();
         Console.Clear();
-        Console.WriteLine("(Data urodzenia powinna być w formacie DD-MM-RRRR)");
+        Console.WriteLine("(Data urodzenia powinna być w formacie DD/MM/YYYY)");
         Console.Write("Proszę ponownie podać Datę urodzenia:");
         goto rebirthdate;
     }
+    DateTime dt = DateTime.ParseExact(birthday.ToString(), "dd/mm/yyyy", CultureInfo.InvariantCulture);
+    string newAccBirthdate = dt.ToString("yyyy-mm-dd", CultureInfo.InvariantCulture);
+    Console.WriteLine("Proszę podać płeć:");
+    Console.WriteLine("M-Mężczyzna");
+    Console.WriteLine("K-Kobieta");
+regender:
+    string newGender = Console.ReadLine().ToUpper();
+    if (string.IsNullOrEmpty(newGender))
+    {
+        Console.WriteLine("Zakładka Płeć nie może być pusta, spróbuj ponownie");
+        Console.WriteLine("Naciśnij enter by kontynuować");
+        Console.ReadLine();
+        Console.Clear();
+        Console.WriteLine("(Data urodzenia powinna być w formacie DD-MM-RRRR)");
+        Console.Write("Proszę ponownie podać Datę urodzenia:");
+        goto regender;
+    }
+
 notSure:
     Console.Clear();
+    string birthType;
+    if (newGender == "M")
+    {
+        birthType = "Urodzony dnia";
+    }
+    else
+    {
+        birthType = "Urodzona dnia";
+    }
     Console.WriteLine("Twoje dane osobowe to:");
-    Console.WriteLine($"{newAccName}, {newAccSurname}, urodzona dnia {newAccBirthdate}");
+    Console.WriteLine($"{newAccName}, {newAccSurname}, {birthType}, {dt.Date}");
     Console.WriteLine("Czy dane są poprawne?");
     Console.WriteLine("1. Tak");
     Console.WriteLine("2. Nie");
@@ -96,6 +170,103 @@ notSure:
 
     if (confirmation == "1" || confirmation.ToLower() == "tak")
     {
+        string connStr = "server=localhost;user=root;database=Bank;port=3306;password=";
+
+        MySqlConnection conn = new MySqlConnection(connStr);
+        try
+        {
+            Console.Clear();
+            conn.Open();
+            String startWith = "32";
+            Random generator = new Random();
+            String r = generator.Next(0, 999967).ToString("D6");
+            String accNum = startWith + r;
+        repair:
+            Console.WriteLine($"Numer twojego konta to: {accNum},zapisz go");
+            Console.WriteLine("Proszę ustawić hasło logowania:");
+            var pw1 = string.Empty;
+            ConsoleKey key;
+            do
+            {
+                var keyInfo = Console.ReadKey(intercept: true);
+                key = keyInfo.Key;
+
+                if (key == ConsoleKey.Backspace && pw1.Length > 0)
+                {
+                    Console.Write("\b \b");
+                    pw1 = pw1[0..^1];
+                }
+                else if (!char.IsControl(keyInfo.KeyChar))
+                {
+                    Console.Write("*");
+                    pw1 += keyInfo.KeyChar;
+                }
+            } while (key != ConsoleKey.Enter);
+            Console.WriteLine();
+            Console.WriteLine("Proszę powtórzyć hasło");
+            var pw2 = string.Empty;
+            ConsoleKey key2;
+            do
+            {
+                var keyInfo2 = Console.ReadKey(intercept: true);
+                key2 = keyInfo2.Key;
+
+                if (key == ConsoleKey.Backspace && pw2.Length > 0)
+                {
+                    Console.Write("\b \b");
+                    pw2 = pw2[0..^1];
+                }
+                else if (!char.IsControl(keyInfo2.KeyChar))
+                {
+                    Console.Write("*");
+                    pw2 += keyInfo2.KeyChar;
+                }
+            } while (key2 != ConsoleKey.Enter);
+
+            if (pw1 != pw2)
+            {
+                Console.WriteLine();
+                Console.WriteLine("hasła się nie zgadzają, spróbuj ponownie.");
+                Console.WriteLine("by kontynuować naciśnij enter");
+                Console.ReadLine();
+                Console.Clear();
+                goto repair;
+            }
+            else
+            {
+                Console.WriteLine(  );
+                Console.WriteLine("Dodawanie nowego konta do bazy danych, proszę czekać...");
+                try
+                {
+                    string sql = $"INSERT INTO clients(Account_number,Name,Surname,Gender,Birth_date)Values(\"{accNum}\",\"{newAccName}\",\"{newAccSurname}\",\"{newGender}\",\"{newAccBirthdate}\");";
+                    string sql2 = $"INSERT INTO clients_login(Account_number,Password)Values(\"{accNum}\",\"2{pw2}\");";
+                    string sql3 = $"INSERT INTO account_balance(Account_number,Account_balance)Values(\"{accNum}\",\"0\",\"PLN\");";
+                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    MySqlCommand cmd2 = new MySqlCommand(sql2, conn);
+                    MySqlCommand cmd3 = new MySqlCommand(sql3, conn);
+                    cmd.ExecuteNonQuery();
+                    cmd2.ExecuteNonQuery();
+                    cmd3.ExecuteNonQuery();
+                    Console.WriteLine("Pomyślnie dodano nowe konto, można się zalogować");
+                }
+                 catch (Exception ex) {
+                    Console.WriteLine("Couldn't add new account to the database, check the connection");
+                    Console.WriteLine(ex.ToString()); 
+                }
+            }
+
+
+
+
+        }
+        catch (Exception err)
+        {
+            Console.WriteLine("Couldn't add new account to the database, check the connection");
+            Console.WriteLine(err.ToString());
+        }
+        conn.Close();
+        Console.Read();
+
 
     }
     else if (confirmation == "2" || confirmation.ToLower() == "nie")
@@ -114,35 +285,36 @@ notSure:
         }
 
     }
-}
-else if (ifAcc == "0")
-{
-    Console.WriteLine("Dziękujemy za skorzystanie z aplikacji naszego banku i życzymy miłego dnia");
-    Console.WriteLine("By zamknąc naciśnij enter");
-    Console.ReadLine();
-}
-else
-{
-    Console.WriteLine("Niepoprawna odpowiedź");
-    Console.WriteLine("By kontynuować naciśnij enter");
+    Console.WriteLine("By kontynuować naciśnij ENTER:");
+    Console.ReadLine() ;
     Console.Clear();
     goto restart;
 }
 
-
-
-
-
-/*ZAPISZ TEN KOD
- * try
+else if (ifAcc == "0")
 {
-    using (FileStream fs = File.Create(link))
-    {
-        byte[] info = new UTF8Encoding(true).GetBytes("dane testowe");
-        fs.Write(info,0,info.Length);
-    }
-}catch (Exception ex)
-{
-    Console.WriteLine(ex.ToString());
+    Console.WriteLine("Dziękujemy za skorzystanie z aplikacji naszego banku i życzymy miłego dnia");
+    Console.WriteLine("By zamknąc naciśnij ENTER");
+    Console.ReadLine();
+    Environment.Exit(0);
 }
-*/
+else
+{
+    Console.WriteLine("Niepoprawna odpowiedź");
+    Console.WriteLine("By kontynuować naciśnij ENTER");
+    Console.Clear();
+    goto restart;
+}
+if(loggedIn == 0)
+{
+    Console.WriteLine("Nie jesteś zalogowany/a");
+    Console.WriteLine("By wrócić do menu głównego naciśnij ENTER");
+    Console.ReadLine();
+    goto restart;
+}
+else
+{
+    string connStr = "server=localhost;user=root;database=Bank;port=3306;password=";
+    MySqlConnection conn = new MySqlConnection(connStr);
+    conn.Open();
+}
