@@ -4,8 +4,12 @@ using System.Globalization;
 
 operations.dbconntest();
 
-restart:
+string login = "0";
 int loggedIn = 0;
+restart:
+
+Console.Clear();
+
 Console.WriteLine("Witaj drogi kliencie, czy posiadasz już konto w naszym banku?");
 Console.WriteLine("Wybierz opcje wpisując liczbę 1, 2 lub 0");
 Console.WriteLine("1. Zaloguj się na swoje konto");
@@ -18,10 +22,17 @@ if (ifAcc == "1")
     string checkPasswd = "0";
     string connStr = "server=localhost;user=root;database=Bank;port=3306;password=";
     MySqlConnection conn = new MySqlConnection(connStr);
+login:
     Console.Clear();
     Console.WriteLine("Witamy w systemie logowania naszego banku");
     Console.WriteLine("Podaj Numer konta:");
-    string login = Console.ReadLine();
+    login = Console.ReadLine();
+    if (string.IsNullOrEmpty(login))
+    {
+        Console.WriteLine("Login nie może być pusty,sprobuj ponownie");
+        Console.ReadLine();
+        goto login;
+    }
     try
     {
         conn.Open();
@@ -75,7 +86,7 @@ haslo:
     else
     {
         Console.WriteLine();
-        Console.WriteLine("hasło niepoprawne, spróbuj ponownie");
+        Console.WriteLine("hasło bądź numer klienta niepoprawny, spróbuj ponownie");
         goto haslo;
 
     }
@@ -231,8 +242,8 @@ notSure:
                 try
                 {
                     string sql = $"INSERT INTO clients(Account_number,Name,Surname,Gender,Birth_date)Values(\"{accNum}\",\"{newAccName}\",\"{newAccSurname}\",\"{newGender}\",\"{newAccBirthdate}\");";
-                    string sql2 = $"INSERT INTO clients_login(Account_number,Password)Values(\"{accNum}\",\"2{pw2}\");";
-                    string sql3 = $"INSERT INTO account_balance(Account_number,Account_balance)Values(\"{accNum}\",\"0\",\"PLN\");";
+                    string sql2 = $"INSERT INTO clients_login(Account_number,Password)Values(\"{accNum}\",\"{pw2}\");";
+                    string sql3 = $"INSERT INTO account_balance(Account_number,Account_balance,Currency_type)Values(\"{accNum}\",\"0\",\"Zł\");";
                     MySqlCommand cmd = new MySqlCommand(sql, conn);
                     MySqlCommand cmd2 = new MySqlCommand(sql2, conn);
                     MySqlCommand cmd3 = new MySqlCommand(sql3, conn);
@@ -295,6 +306,7 @@ else
 {
     Console.WriteLine("Niepoprawna odpowiedź");
     Console.WriteLine("By kontynuować naciśnij ENTER");
+    Console.ReadLine();
     Console.Clear();
     goto restart;
 }
@@ -307,7 +319,134 @@ if (loggedIn == 0)
 }
 else
 {
+test:
+    Console.Clear();
     string connStr = "server=localhost;user=root;database=Bank;port=3306;password=";
     MySqlConnection conn = new MySqlConnection(connStr);
     conn.Open();
+    string sql = $"Select clients.Account_number,Name,Surname,account_balance.Account_balance from Clients inner join account_balance on Clients.Account_number = account_balance.Account_number where clients.Account_number = {login};\r\n";
+    MySqlCommand cmd = new MySqlCommand(sql, conn);
+    cmd.ExecuteNonQuery();
+    string Account_number = "0";
+    string Name = "0";
+    string Surname = "0";
+    decimal Account_balance = 0;
+    using (MySqlDataReader reader = cmd.ExecuteReader())
+    {
+        while (reader.Read())
+        {
+            Account_number = reader["Account_number"].ToString();
+            Name = reader["Name"].ToString();
+            Surname = reader["Surname"].ToString();
+            string Account_balance_string = reader["Account_balance"].ToString();
+            Account_balance = Decimal.Parse(Account_balance_string, CultureInfo.InvariantCulture);
+        }
+        conn.Close();
+
+
+        decimal balance = 0;
+        string currency = "0";
+        Console.Clear();
+        Console.WriteLine($"Witaj {Name} {Surname}!");
+        Console.WriteLine("Co chcesz dzisiaj zrobić?");
+        Console.WriteLine("1. Wypłać pieniądze");
+        Console.WriteLine("2. Dokonaj wpłaty");
+        Console.WriteLine("3. Wyloguj się");
+        conn.Open();
+        string sql1 = $"Select Account_number,Account_balance, Currency_type from account_balance where account_number = \"{login}\"";
+        MySqlCommand cmd1 = new MySqlCommand(sql1, conn);
+        cmd1.ExecuteNonQuery();
+        using (MySqlDataReader reader1 = cmd1.ExecuteReader())
+        {
+            while (reader1.Read())
+            {
+                balance = decimal.Parse(reader1["Account_balance"].ToString());
+                currency = reader1["Currency_type"].ToString();
+            }
+        }
+        conn.Close();
+        Console.WriteLine($"Stan twojego konta to: {balance}  {currency}");
+        string menu = Console.ReadLine();
+        if (menu == "1")
+        {
+            Console.Clear();
+            decimal incomeDec = decimal.Parse(income);
+            decimal newBalance = balance + incomeDec;
+            conn.Open();
+            try
+            {
+                sql = $"Update account_balance set Account_balance = \'{newBalance}\' where account_number = \'{login}\'";
+                cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+                Console.WriteLine("Dodawanie środków powiodło się, naciśnij enter by wrócić do panelu głównego konta");
+                Console.ReadLine();
+                goto test;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Nie można przeprowadzić zabiegu, z przyczyn:");
+                Console.WriteLine(ex.ToString());
+                Console.ReadLine();
+                goto test;
+            }
+
+        }
+        else if (menu == "2")
+        {
+            Console.WriteLine($"Aktualny stan twojego konta to {balance} {currency} ile chcesz wpłacić?");
+            Console.WriteLine("Naciśnij enter by wrócić, wpisz wartość by dopłacić");
+            string income = Console.ReadLine();
+            if (string.IsNullOrEmpty(income))
+            {
+                Console.WriteLine("Dziękujemy za skorzystanie z naszych usług");
+                Console.WriteLine("Naciśnij enter by przejść do panelu głównego konta");
+                Console.ReadLine();
+                goto test;
+            }
+            else
+            {
+                Console.Clear();
+                decimal incomeDec = decimal.Parse(income);
+                decimal newBalance = balance + incomeDec;
+                conn.Open();
+                try
+                {
+                    sql = $"Update account_balance set Account_balance = \'{newBalance}\' where account_number = \'{login}\'";
+                    cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    Console.WriteLine("Dodawanie środków powiodło się, naciśnij enter by wrócić do panelu głównego konta");
+                    Console.ReadLine();
+                    goto test;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Nie można przeprowadzić zabiegu, z przyczyn:");
+                    Console.WriteLine(ex.ToString());
+                    Console.ReadLine();
+                    goto test;
+                }
+            }
+        }
+        else if (menu == "3")
+        {
+            Console.Clear();
+            Console.WriteLine("Pomyślnie się wylogowano, Dziękujemy za skorzystanie z usług naszego banku");
+            Console.WriteLine("Naciśnij Enter by kontynuować");
+            Console.ReadLine();
+            loggedIn = 0;
+            Console.Clear();
+            goto restart;
+        }
+        else
+        {
+            Console.Clear();
+            Console.WriteLine("Ta odpowiedź jest niepoprawna, spróbuj ponownie");
+            Console.WriteLine("Naciśnij Enter by kontynuować");
+            Console.ReadLine();
+            goto test;
+
+        }
+
+    }
+
 }
