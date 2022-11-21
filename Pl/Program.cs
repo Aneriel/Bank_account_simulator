@@ -304,6 +304,7 @@ else if (ifAcc == "0")
 }
 else
 {
+    Console.Clear();
     Console.WriteLine("Niepoprawna odpowiedź");
     Console.WriteLine("By kontynuować naciśnij ENTER");
     Console.ReadLine();
@@ -369,26 +370,40 @@ test:
         string menu = Console.ReadLine();
         if (menu == "1")
         {
-            Console.Clear();
-            decimal incomeDec = decimal.Parse(income);
-            decimal newBalance = balance + incomeDec;
-            conn.Open();
-            try
+            Console.WriteLine($"Aktualny stan twojego konta to {balance} {currency} ile chcesz wypłacić?");
+            Console.WriteLine("Naciśnij enter by wrócić, wpisz wartość by wypłacić");
+            string income = Console.ReadLine();
+            if (string.IsNullOrEmpty(income))
             {
-                sql = $"Update account_balance set Account_balance = \'{newBalance}\' where account_number = \'{login}\'";
-                cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQuery();
-                Console.WriteLine("Dodawanie środków powiodło się, naciśnij enter by wrócić do panelu głównego konta");
+                Console.WriteLine("Dziękujemy za skorzystanie z naszych usług");
+                Console.WriteLine("Naciśnij enter by przejść do panelu głównego konta");
                 Console.ReadLine();
                 goto test;
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine("Nie można przeprowadzić zabiegu, z przyczyn:");
-                Console.WriteLine(ex.ToString());
-                Console.ReadLine();
-                goto test;
+                Console.Clear();
+                decimal minusDec = decimal.Parse(income);
+                decimal newBalance = balance - minusDec;
+                conn.Open();
+                try
+                {
+                    sql = $"Update account_balance set Account_balance = \'{newBalance}\' where account_number = \'{login}\'";
+                    cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                    Console.WriteLine("Wypłacanie środków powiodło się, naciśnij enter by wrócić do panelu głównego konta");
+                    Console.ReadLine();
+                    goto test;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Nie można przeprowadzić zabiegu, z przyczyn:");
+                    Console.WriteLine(ex.ToString());
+                    Console.ReadLine();
+                    goto test;
+                }
             }
+
 
         }
         else if (menu == "2")
